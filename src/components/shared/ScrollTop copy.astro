@@ -1,0 +1,58 @@
+---
+import { FiArrowUp } from "react-icons/fi";
+
+interface Props {
+  label?: string;
+}
+
+const { label = "Back to top" } = Astro.props;
+---
+
+<button
+  type="button"
+  data-scroll-top
+  aria-label={label}
+  class="fixed bottom-6 right-6 z-40 flex h-12 w-12 translate-y-4 scale-90 cursor-pointer items-center justify-center rounded-full border border-line bg-panel/85 text-ink opacity-0 shadow-e2 backdrop-blur-lg transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-panel active:scale-[0.92] lg:bottom-8 lg:right-8"
+>
+  <FiArrowUp className="h-5 w-5" aria-hidden="true" />
+</button>
+
+<script>
+  const THRESHOLD = 420;
+
+  function initScrollTop() {
+    const btn = document.querySelector<HTMLElement>("[data-scroll-top]");
+    if (!btn) return;
+
+    let ticking = false;
+
+    const render = () => {
+      const visible = window.scrollY > THRESHOLD;
+      btn.classList.toggle("opacity-0", !visible);
+      btn.classList.toggle("translate-y-4", !visible);
+      btn.classList.toggle("scale-90", !visible);
+      btn.classList.toggle("pointer-events-none", !visible);
+      btn.classList.toggle("opacity-100", visible);
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(render);
+    };
+
+    window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    render();
+  }
+
+  // Delegated so a single listener survives every view transition.
+  document.addEventListener("click", (event) => {
+    if (!(event.target as Element).closest("[data-scroll-top]")) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  });
+
+  document.addEventListener("astro:page-load", initScrollTop);
+</script>
