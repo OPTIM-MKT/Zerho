@@ -1,0 +1,91 @@
+---
+import { Image } from "astro:assets";
+import Icon from "@/components/ui/Icon.astro";
+import {
+  formatPrice,
+  propertyHref,
+  type Property,
+} from "@/lib/properties";
+
+/**
+ * Tarjeta de residencia, usada para las otras dos fichas justo antes del pie.
+ * Muestra exactamente lo que hace falta para decidir si merece un clic:
+ * etapa, nombre, ubicación, precio y dos cifras de superficie.
+ */
+interface Props {
+  property: Property;
+  class?: string;
+}
+
+const { property, class: className = "" } = Astro.props;
+const { data } = property;
+const href = propertyHref(property);
+---
+
+<a
+  href={href}
+  class:list={[
+    "press-soft group relative flex h-full flex-col overflow-hidden rounded-frame border border-line bg-panel shadow-e1 transition-shadow duration-500 ease-[var(--ease-out-expo)] hover:shadow-e2",
+    className,
+  ]}
+>
+  <div class="relative aspect-[4/3] overflow-hidden bg-panel-alt">
+    <Image
+      src={data.cover}
+      alt={data.coverAlt || `Fachada de ${data.title}`}
+      widths={[480, 800, 1200]}
+      sizes="(min-width: 1024px) 42vw, 92vw"
+      loading="lazy"
+      class="h-full w-full object-cover transition-transform duration-[900ms] ease-[var(--ease-out-expo)] group-hover:scale-[1.05]"
+    />
+
+    <span
+      class="pointer-events-none absolute inset-0 bg-gradient-to-t from-base-black/45 to-transparent"
+      aria-hidden="true"></span>
+
+    <span
+      class="absolute left-4 top-4 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-md"
+    >
+      {data.status}
+    </span>
+  </div>
+
+  <div class="flex flex-1 flex-col p-6 lg:p-7">
+    <h3 class="type-heading text-ink">{data.title}</h3>
+
+    <p class="mt-2 inline-flex items-center gap-2 text-[0.85rem] text-muted">
+      <Icon name="map-pin" class="h-3.5 w-3.5 shrink-0 text-accent" />
+      {data.location}
+    </p>
+
+    <p class="type-stat mt-5 text-ink">
+      {formatPrice(data.price, data.currency)}
+    </p>
+
+    <dl class="mt-5 flex flex-wrap gap-x-7 gap-y-2 border-t border-line pt-5">
+      {
+        data.highlights.slice(0, 3).map((item) => (
+          <div>
+            <dt class="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted">
+              {item.label}
+            </dt>
+            <dd class="mt-1.5 text-[0.9rem] font-semibold text-ink tabular-nums">
+              {item.value}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+
+    <span
+      class="mt-7 inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-accent-deep"
+    >
+      Ver residencia
+      <Icon
+        name="arrow-right"
+        class="h-4 w-4 transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
+        strokeWidth={1.9}
+      />
+    </span>
+  </div>
+</a>

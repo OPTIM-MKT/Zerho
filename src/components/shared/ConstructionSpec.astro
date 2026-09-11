@@ -1,0 +1,58 @@
+---
+/**
+ * Especificación constructiva agrupada por familia.
+ *
+ * El título del grupo se queda pegado al lateral mientras se leen sus partidas
+ * (en pantallas anchas): el lector siempre sabe si lo que está leyendo es
+ * envolvente, acabado o instalación, sin tener que volver atrás.
+ */
+interface Item {
+  title: string;
+  body: string;
+}
+
+interface Props {
+  groups: readonly { group: string; items: readonly Item[] }[];
+  class?: string;
+}
+
+const { groups, class: className = "" } = Astro.props;
+---
+
+<div class:list={["space-y-14 lg:space-y-20", className]}>
+  {
+    groups.map((group, groupIndex) => (
+      <section class="grid gap-8 lg:grid-cols-[16rem_1fr] lg:gap-14">
+        <div class="reveal lg:sticky lg:top-[calc(var(--chrome-h)+2.5rem)] lg:self-start">
+          <span
+            class="type-label tabular-nums text-accent-deep"
+            aria-hidden="true"
+          >
+            {String(groupIndex + 1).padStart(2, "0")}
+          </span>
+          <h3 class="type-heading mt-3 text-ink">{group.group}</h3>
+          <span
+            class="mt-5 block h-px w-12 bg-accent/45"
+            aria-hidden="true"
+          />
+        </div>
+
+        <ul class="grid gap-px overflow-hidden rounded-panel border border-line bg-line sm:grid-cols-2">
+          {group.items.map((item, i) => (
+            <li
+              class="reveal bg-panel px-6 py-7"
+              style={`transition-delay:${Math.min(i * 60, 280)}ms`}
+            >
+              <h4 class="text-[1rem] font-semibold leading-snug tracking-[-0.01em] text-ink">
+                {item.title}
+              </h4>
+              <p class="mt-3 text-[0.925rem] leading-relaxed text-muted">
+                {item.body}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</div>

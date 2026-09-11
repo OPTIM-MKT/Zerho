@@ -1,0 +1,244 @@
+---
+import { render } from "astro:content";
+
+import { COMMITMENTS, PROMISE, WARRANTY } from "@/data/site";
+import {
+  formatPrice,
+  getOtherProperties,
+  type Property,
+} from "@/lib/properties";
+import { pickGalleryImage } from "@/lib/gallery";
+
+import PropertyHero from "@/components/shared/PropertyHero.astro";
+import SectionHeader from "@/components/shared/SectionHeader.astro";
+import SpecSheet from "@/components/shared/SpecSheet.astro";
+import FeatureList from "@/components/shared/FeatureList.astro";
+import SplitFeature from "@/components/shared/SplitFeature.astro";
+import ConstructionSpec from "@/components/shared/ConstructionSpec.astro";
+import Gallery from "@/components/shared/Gallery.astro";
+import PlansViewer from "@/components/shared/PlansViewer.astro";
+import PillarGrid from "@/components/shared/PillarGrid.astro";
+import Statement from "@/components/shared/Statement.astro";
+import PropertyCard from "@/components/shared/PropertyCard.astro";
+import CtaSection from "@/components/shared/CtaSection.astro";
+
+/**
+ * Ficha completa de una residencia.
+ *
+ * Es el único montaje de página del sitio: la portada y `/[slug]` se limitan a
+ * elegir qué propiedad le pasan. Así las tres fichas no pueden divergir —ni en
+ * orden de secciones, ni en anclas, ni en ritmo— por mucho que crezca el
+ * contenido de cada .md.
+ */
+interface Props {
+  property: Property;
+}
+
+const { property } = Astro.props;
+const { data } = property;
+
+const { Content } = await render(property);
+const others = await getOtherProperties(property);
+
+// Las tres fichas comparten juego de fotos; el desplazamiento por `order` hace
+// que cada una abra sus bloques con una imagen distinta.
+const constructionImage = pickGalleryImage(
+  data.galleryDir,
+  data.order * 3 + 5,
+  data.cover,
+);
+---
+
+<PropertyHero
+  title={data.title}
+  location={data.location}
+  status={data.status}
+  price={data.price}
+  currency={data.currency}
+  excerpt={data.excerpt}
+  cover={data.cover}
+  coverAlt={data.coverAlt}
+  highlights={data.highlights}
+/>
+
+{/* --- Presentación editorial ------------------------------------------- */}
+<section class="section-y">
+  <div class="container-x grid gap-12 lg:grid-cols-[17rem_1fr] lg:gap-20">
+    <div class="reveal lg:sticky lg:top-[calc(var(--chrome-h)+3rem)] lg:self-start">
+      <p class="type-eyebrow flex items-center gap-3 text-accent-deep">
+        <span class="h-px w-8 bg-accent/45" aria-hidden="true"></span>
+        La residencia
+      </p>
+
+      <dl class="mt-8 space-y-6">
+        <div>
+          <dt class="type-eyebrow text-muted">Ubicación</dt>
+          <dd class="mt-2 text-[0.95rem] leading-snug text-ink">
+            {data.location}
+          </dd>
+        </div>
+        <div>
+          <dt class="type-eyebrow text-muted">Etapa</dt>
+          <dd class="mt-2 text-[0.95rem] leading-snug text-ink">
+            {data.status}
+          </dd>
+        </div>
+        <div>
+          <dt class="type-eyebrow text-muted">Precio</dt>
+          <dd class="type-stat mt-2.5 text-ink">
+            {formatPrice(data.price, data.currency)}
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="reveal prose prose-zerho max-w-none lg:prose-lg">
+      <Content />
+    </div>
+  </div>
+</section>
+
+{/* --- Características y especificación constructiva --------------------- */}
+<section
+  id="caracteristicas"
+  class="section-anchor section-y hairline-t bg-panel/60"
+>
+  <div class="container-x">
+    <SectionHeader
+      eyebrow="Ficha técnica"
+      title="Características principales"
+      description="Las cifras que definen la casa, tomadas del proyecto ejecutivo."
+    />
+
+    <SpecSheet items={data.specs} class="mt-12" />
+
+    {
+      data.features.length > 0 && (
+        <FeatureList
+          items={data.features}
+          variant="columns"
+          class="mt-14 max-w-5xl"
+        />
+      )
+    }
+
+    {
+      data.construction.length > 0 && (
+        <>
+          <SplitFeature
+            class="mt-24 lg:mt-32"
+            eyebrow="Especificación constructiva"
+            title="Lo que se firma es lo que se construye"
+            body={[
+              "Cada partida está definida por marca, sistema y espesor desde el proyecto ejecutivo, no durante la obra. Esa es la condición que hace posible un contrato a precio alzado.",
+              "La misma especificación es la que se verifica en cada aportación programada: el avance que se paga es el avance que se puede revisar en sitio.",
+            ]}
+            image={constructionImage}
+            imageAlt={`Detalle constructivo de ${data.title}`}
+            imageSide="right"
+          />
+
+          <ConstructionSpec groups={data.construction} class="mt-20 lg:mt-24" />
+        </>
+      )
+    }
+  </div>
+</section>
+
+{/* --- Galería ----------------------------------------------------------- */}
+<section id="galeria" class="section-anchor section-y">
+  <div class="container-x">
+    <SectionHeader
+      eyebrow="Galería"
+      title="Recorrido visual"
+      description="Imágenes de referencia del nivel de acabado y de la atmósfera del proyecto."
+    />
+
+    <Gallery
+      dir={data.galleryDir}
+      subject={data.title}
+      layout="mosaic"
+      class="mt-12"
+    />
+  </div>
+</section>
+
+{/* --- Planos ------------------------------------------------------------ */}
+{
+  data.plans.length > 0 && (
+    <section
+      id="planos"
+      class="section-anchor section-y hairline-t bg-panel/60"
+    >
+      <div class="container-x">
+        <SectionHeader
+          eyebrow="Planos"
+          title="Distribución por nivel"
+          description="Toca cualquier lámina para verla a pantalla completa."
+        />
+
+        <PlansViewer plans={data.plans} subject={data.title} class="mt-12" />
+      </div>
+    </section>
+  )
+}
+
+{/* --- Compromiso y garantía --------------------------------------------- */}
+<section
+  id="compromiso"
+  class="section-anchor section-y bg-primary text-on-primary"
+>
+  <div class="container-x">
+    <SectionHeader
+      tone="dark"
+      eyebrow={PROMISE.eyebrow}
+      title={PROMISE.title}
+      description={PROMISE.body}
+    />
+
+    <PillarGrid
+      items={COMMITMENTS}
+      tone="dark"
+      columns={3}
+      class="mt-14"
+    />
+
+    <Statement
+      class="mt-12"
+      figure={WARRANTY.years}
+      figureUnit="años"
+      title={WARRANTY.title}
+      body={WARRANTY.body}
+    />
+  </div>
+</section>
+
+{/* --- Otras residencias -------------------------------------------------- */}
+{
+  others.length > 0 && (
+    <section id="otras" class="section-anchor section-y">
+      <div class="container-x">
+        <SectionHeader
+          eyebrow="Portafolio"
+          title="Otras residencias"
+          description="El mismo estándar constructivo y el mismo compromiso, en otras ubicaciones."
+        />
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8">
+          {others.map((other, i) => (
+            <div class="reveal" style={`transition-delay:${i * 90}ms`}>
+              <PropertyCard property={other} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+{/* --- Contacto ----------------------------------------------------------- */}
+<CtaSection
+  propertyTitle={data.title}
+  title={`Conozcamos ${data.title} juntos`}
+  description="Agenda un recorrido con el equipo directivo y resolvamos, en una sola conversación, el proyecto, los tiempos y el esquema de aportaciones."
+/>

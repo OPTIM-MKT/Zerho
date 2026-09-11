@@ -1,0 +1,157 @@
+---
+import { SITE, SECTIONS, mailHref, whatsappHref } from "@/data/site";
+import { getProperties, propertyHref } from "@/lib/properties";
+import Icon from "@/components/ui/Icon.astro";
+
+/**
+ * Pie sobrio: identidad, contacto, índice y las tres residencias. Sin boletín,
+ * sin mapa del sitio inflado — no hay más sitio que esto.
+ */
+interface Props {
+  /** Residencia que se está viendo; personaliza los enlaces de contacto. */
+  propertyTitle?: string;
+  currentId?: string;
+}
+
+const { propertyTitle, currentId } = Astro.props;
+const properties = await getProperties();
+const year = new Date().getFullYear();
+---
+
+<footer class="bg-primary-deep text-on-primary">
+  <div class="container-x py-16 lg:py-20">
+    <div class="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr] lg:gap-16">
+      <!-- Identidad -->
+      <div>
+        <div class="flex items-center gap-3">
+          <span
+            class="grid h-11 w-11 place-items-center rounded-[0.75rem] bg-white/10 font-[family-name:var(--font-display)] text-[1.1rem] leading-none tracking-[-0.04em] ring-1 ring-inset ring-white/15"
+            aria-hidden="true">Z</span
+          >
+          <span class="flex flex-col gap-1.5">
+            <span
+              class="text-[1.1rem] font-semibold uppercase leading-none tracking-[0.3em]"
+              >{SITE.name}</span
+            >
+            <span
+              class="text-[0.58rem] font-medium uppercase leading-none tracking-[0.28em] text-on-primary-muted"
+              >{SITE.slogan}</span
+            >
+          </span>
+        </div>
+
+        <p class="mt-7 max-w-sm text-[0.95rem] leading-relaxed text-on-primary/65">
+          {SITE.description}
+        </p>
+
+        <div class="mt-8 flex flex-wrap gap-2.5">
+          <a
+            href={whatsappHref(propertyTitle)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-glass btn-sm"
+          >
+            <Icon name="whatsapp" class="h-4 w-4" />
+            WhatsApp
+          </a>
+          <a href={mailHref(propertyTitle)} class="btn btn-glass btn-sm">
+            <Icon name="mail" class="h-4 w-4" strokeWidth={1.8} />
+            Escribir
+          </a>
+        </div>
+      </div>
+
+      <!-- Residencias -->
+      <nav aria-labelledby="footer-residencias">
+        <h2
+          id="footer-residencias"
+          class="type-eyebrow text-on-primary-muted"
+        >
+          Residencias
+        </h2>
+        <ul class="mt-6 space-y-3.5">
+          {
+            properties.map((property) => (
+              <li>
+                <a
+                  href={propertyHref(property)}
+                  aria-current={property.id === currentId ? "page" : undefined}
+                  class="group inline-flex items-baseline gap-2 text-[0.95rem] text-on-primary/70 transition-colors duration-300 hover:text-on-primary aria-[current=page]:text-on-primary"
+                >
+                  {property.data.title}
+                  <Icon
+                    name="arrow-up-right"
+                    class="h-3.5 w-3.5 shrink-0 -translate-x-1 opacity-0 transition-all duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-0 group-hover:opacity-100"
+                  />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <!-- Contacto e índice -->
+      <div>
+        <h2 class="type-eyebrow text-on-primary-muted">Contacto</h2>
+        <ul class="mt-6 space-y-3.5 text-[0.95rem] text-on-primary/70">
+          <li>
+            <a
+              href={`tel:${SITE.phoneHref}`}
+              class="inline-flex items-center gap-2.5 transition-colors duration-300 hover:text-on-primary"
+            >
+              <Icon name="phone" class="h-4 w-4 shrink-0 text-accent-light" />
+              {SITE.phone}
+            </a>
+          </li>
+          <li>
+            <a
+              href={mailHref(propertyTitle)}
+              class="inline-flex items-center gap-2.5 transition-colors duration-300 hover:text-on-primary"
+            >
+              <Icon name="mail" class="h-4 w-4 shrink-0 text-accent-light" />
+              {SITE.email}
+            </a>
+          </li>
+          <li class="flex items-start gap-2.5">
+            <Icon
+              name="map-pin"
+              class="mt-0.5 h-4 w-4 shrink-0 text-accent-light"
+            />
+            {SITE.city}
+          </li>
+        </ul>
+
+        <h2 class="type-eyebrow mt-10 text-on-primary-muted">En esta ficha</h2>
+        <ul class="mt-5 flex flex-wrap gap-x-5 gap-y-2.5">
+          {
+            SECTIONS.map((section) => (
+              <li>
+                <a
+                  href={`#${section.id}`}
+                  class="text-[0.85rem] text-on-primary/60 transition-colors duration-300 hover:text-on-primary"
+                >
+                  {section.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div
+      class="mt-14 flex flex-col gap-4 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p class="text-[0.75rem] text-on-primary/45">
+        © {year} {SITE.legalName}. Todos los derechos reservados.
+      </p>
+      <p class="text-[0.75rem] text-on-primary/45">
+        Precios e imágenes de carácter informativo; no constituyen oferta
+        vinculante.
+      </p>
+    </div>
+  </div>
+
+  <!-- Aire bajo el pie para que la barra flotante de móvil no tape el aviso -->
+  <div class="h-16 lg:hidden" aria-hidden="true"></div>
+</footer>

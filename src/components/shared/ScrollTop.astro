@@ -1,51 +1,67 @@
+---
+import Icon from "@/components/ui/Icon.astro";
+
+/**
+ * Vuelta al inicio. Sólo en escritorio: en móvil, la barra de secciones ya
+ * ocupa esa esquina y lleva a cualquier parte de la ficha, incluida la primera.
+ */
+---
+
 <button
-  id="scroll-to-top"
-  aria-label="Volver arriba"
-  class="fixed bottom-8 right-8 z-50 flex h-12 w-12 translate-y-20 cursor-pointer items-center justify-center rounded-full bg-ink text-canvas opacity-0 shadow-lg transition-all duration-300 hover:scale-105 hover:bg-strategic focus:outline-none"
+  type="button"
+  data-scroll-top
+  aria-label="Volver al inicio de la ficha"
+  class="material-chrome fixed bottom-8 right-8 z-40 hidden h-12 w-12 translate-y-4 scale-90 cursor-pointer place-items-center rounded-full border border-line text-ink opacity-0 shadow-e2 transition-[opacity,transform] duration-400 ease-[var(--ease-out-expo)] active:scale-90 lg:grid"
 >
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    class="h-6 w-6"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    stroke-width="2"
-  >
-    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"
-    ></path>
-  </svg>
+  <Icon name="arrow-up" class="h-5 w-5" strokeWidth={1.8} />
 </button>
 
 <script>
-  document.addEventListener("astro:page-load", () => {
-    // Escucha scroll a nivel de window y actualiza la clase
-    const handleScroll = () => {
-      const btn = document.getElementById("scroll-to-top");
-      if (!btn) return;
-      if (window.scrollY > 300) {
-        btn.classList.remove(
-          "opacity-0",
-          "translate-y-20",
-          "pointer-events-none",
-        );
-        btn.classList.add("opacity-100", "translate-y-0");
-      } else {
-        btn.classList.add("opacity-0", "translate-y-20", "pointer-events-none");
-        btn.classList.remove("opacity-100", "translate-y-0");
-      }
+  const THRESHOLD = 480;
+
+  let cleanup: (() => void) | null = null;
+
+  function initScrollTop() {
+    cleanup?.();
+
+    const button = document.querySelector<HTMLElement>("[data-scroll-top]");
+    if (!button) return;
+
+    let frame = 0;
+
+    const render = () => {
+      const visible = window.scrollY > THRESHOLD;
+      button.classList.toggle("opacity-0", !visible);
+      button.classList.toggle("translate-y-4", !visible);
+      button.classList.toggle("scale-90", !visible);
+      button.classList.toggle("pointer-events-none", !visible);
+      frame = 0;
     };
 
-    // Almacenar función p/ poder remover pero en page-load sólo reevaluamos
-    window.removeEventListener("scroll", handleScroll);
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // init state
-  });
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(render);
+    };
 
-  // Evento delegado a nivel document para sobrevivir a transiciones de vista (si corre 1 vez)
-  document.addEventListener("click", (e) => {
-    const target = e.target as Element;
-    if (target.closest("#scroll-to-top")) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  });
+    const onClick = () => {
+      const reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    button.addEventListener("click", onClick);
+    render();
+
+    cleanup = () => {
+      window.removeEventListener("scroll", onScroll);
+      button.removeEventListener("click", onClick);
+      cancelAnimationFrame(frame);
+      cleanup = null;
+    };
+  }
+
+  document.addEventListener("astro:page-load", initScrollTop);
+  document.addEventListener("astro:before-swap", () => cleanup?.());
 </script>

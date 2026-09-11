@@ -1,0 +1,189 @@
+---
+import { Image } from "astro:assets";
+import Button from "@/components/ui/Button.astro";
+import Icon from "@/components/ui/Icon.astro";
+import { formatPrice } from "@/lib/properties";
+import { whatsappHref } from "@/data/site";
+
+/**
+ * Apertura de la ficha. La fotografía ocupa la pantalla completa y el dato
+ * duro —precio, superficies, recámaras— se apoya sobre ella: quien llega
+ * decide con esas cifras antes de leer una sola línea de prosa.
+ */
+interface Props {
+  title: string;
+  location: string;
+  status: string;
+  price: number;
+  currency: string;
+  excerpt: string;
+  cover: ImageMetadata;
+  coverAlt?: string;
+  highlights: readonly { label: string; value: string }[];
+}
+
+const {
+  title,
+  location,
+  status,
+  price,
+  currency,
+  excerpt,
+  cover,
+  coverAlt = "",
+  highlights,
+} = Astro.props;
+---
+
+<section
+  id="residencia"
+  class="section-anchor relative isolate flex min-h-[100svh] flex-col justify-end overflow-hidden bg-base-black"
+>
+  <!-- La imagen se sobredimensiona para que el paralaje nunca descubra el borde -->
+  <div
+    data-hero-parallax
+    class="absolute inset-0 -z-20 will-change-transform"
+    style="height: 118%; top: -9%;"
+  >
+    <Image
+      src={cover}
+      alt={coverAlt || `Fachada de ${title}`}
+      widths={[768, 1280, 1920, 2400]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+      class="h-full w-full object-cover"
+    />
+  </div>
+
+  <!-- Dos velos, no uno: el vertical asienta el texto, el lateral protege la
+       cabecera clara sin apagar la mitad luminosa de la foto. -->
+  <div
+    class="absolute inset-0 -z-10 bg-gradient-to-t from-base-black/88 via-base-black/35 to-base-black/55"
+    aria-hidden="true"
+  >
+  </div>
+  <div
+    class="absolute inset-0 -z-10 bg-gradient-to-r from-base-black/55 via-transparent to-transparent"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="container-x relative pb-16 pt-[calc(var(--chrome-h)+3rem)] lg:pb-20">
+    <div class="max-w-3xl">
+      <p class="reveal type-eyebrow flex items-center gap-3 text-accent-light">
+        <span class="h-px w-8 bg-accent-light/60" aria-hidden="true"></span>
+        {status}
+      </p>
+
+      <h1 class="reveal type-display mt-6 text-white" style="transition-delay:60ms">
+        {title}
+      </h1>
+
+      <p
+        class="reveal mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-white/75"
+        style="transition-delay:120ms"
+      >
+        <span class="inline-flex items-center gap-2 text-[0.95rem]">
+          <Icon name="map-pin" class="h-4 w-4 shrink-0 text-accent-light" />
+          {location}
+        </span>
+        <span class="h-4 w-px bg-white/25" aria-hidden="true"></span>
+        <span class="type-stat text-white">{formatPrice(price, currency)}</span>
+      </p>
+
+      <p
+        class="reveal type-body mt-6 max-w-xl text-white/75"
+        style="transition-delay:180ms"
+      >
+        {excerpt}
+      </p>
+
+      <div
+        class="reveal mt-9 flex flex-wrap items-center gap-3"
+        style="transition-delay:240ms"
+      >
+        <Button
+          href={whatsappHref(title)}
+          external
+          variant="on-primary"
+          icon="arrow-right"
+        >
+          Agendar recorrido
+        </Button>
+        <Button href="#galeria" variant="glass">Ver galería</Button>
+      </div>
+    </div>
+
+    <!-- Cifras de cabecera: una línea de cristal, no una rejilla de tarjetas -->
+    <dl
+      class="reveal mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-[1.25rem] border border-white/15 bg-white/10 backdrop-blur-md sm:grid-cols-4"
+      style="transition-delay:300ms"
+    >
+      {
+        highlights.map((item) => (
+          <div class="bg-black/25 px-5 py-5 backdrop-blur-md">
+            <dt class="type-eyebrow text-white/55">{item.label}</dt>
+            <dd class="type-stat mt-2.5 text-white">{item.value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+
+  <!-- Centinela: mientras se vea, la cabecera va en modo transparente. -->
+  <span
+    data-chrome-sentinel
+    class="pointer-events-none absolute bottom-0 left-0 h-px w-px"
+    aria-hidden="true"></span>
+</section>
+
+<script>
+  /**
+   * Paralaje del hero. rAF y sólo `transform`, que es lo único que el
+   * compositor puede mover sin repintar. El recorrido es corto a propósito:
+   * un fondo que se desplaza demasiado marea y compite con el texto.
+   */
+  let frame = 0;
+  let cleanup: (() => void) | null = null;
+
+  function initParallax() {
+    cleanup?.();
+
+    const layer = document.querySelector<HTMLElement>("[data-hero-parallax]");
+    if (!layer) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduced.matches) {
+      layer.style.transform = "";
+      return;
+    }
+
+    const hero = layer.parentElement!;
+
+    const render = () => {
+      const height = hero.offsetHeight || window.innerHeight;
+      // Se detiene cuando el hero sale de pantalla: fuera de vista no se calcula.
+      const progress = Math.min(Math.max(window.scrollY / height, 0), 1);
+      layer.style.transform = `translate3d(0, ${progress * 9}%, 0)`;
+      frame = 0;
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(render);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    render();
+
+    cleanup = () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+  }
+
+  document.addEventListener("astro:page-load", initParallax);
+  document.addEventListener("astro:before-swap", () => cleanup?.());
+</script>

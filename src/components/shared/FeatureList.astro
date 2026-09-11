@@ -1,21 +1,41 @@
 ---
-import { FiCheck } from "react-icons/fi";
+import Icon from "@/components/ui/Icon.astro";
 
+/**
+ * Lista de características en prosa corta.
+ *  · `stack`   — una columna, se lee como pliego de condiciones
+ *  · `columns` — dos columnas en pantallas anchas
+ *  · `pills`   — resumen rápido, sin jerarquía interna
+ */
 interface Props {
   items: readonly string[];
-  /** `stack` reads as a spec sheet, `pills` as a quick summary row. */
-  variant?: "stack" | "pills" | "columns";
+  variant?: "stack" | "columns" | "pills";
+  tone?: "light" | "dark";
   class?: string;
 }
 
-const { items, variant = "stack", class: className = "" } = Astro.props;
+const {
+  items,
+  variant = "stack",
+  tone = "light",
+  class: className = "",
+} = Astro.props;
+
+const isDark = tone === "dark";
 ---
 
 {
   variant === "pills" ? (
     <ul class:list={["flex flex-wrap gap-2", className]}>
       {items.map((item) => (
-        <li class="rounded-full border border-line bg-panel px-3.5 py-1.5 text-xs font-medium text-muted">
+        <li
+          class:list={[
+            "rounded-full px-3.5 py-1.5 text-xs font-medium",
+            isDark
+              ? "border border-white/15 bg-white/5 text-on-primary/80"
+              : "border border-line bg-panel text-muted",
+          ]}
+        >
           {item}
         </li>
       ))}
@@ -23,21 +43,29 @@ const { items, variant = "stack", class: className = "" } = Astro.props;
   ) : (
     <ul
       class:list={[
-        "grid gap-x-8 gap-y-3.5",
+        "grid gap-x-10 gap-y-4",
         variant === "columns" && "sm:grid-cols-2",
         className,
       ]}
     >
       {items.map((item, i) => (
         <li
-          class="reveal flex items-start gap-3 text-[0.95rem] leading-relaxed text-muted"
-          style={`transition-delay:${Math.min(i * 45, 360)}ms`}
+          class:list={[
+            "reveal flex items-start gap-3.5 text-[0.95rem] leading-relaxed",
+            isDark ? "text-on-primary/75" : "text-muted",
+          ]}
+          style={`transition-delay:${Math.min(i * 45, 320)}ms`}
         >
           <span
-            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent"
+            class:list={[
+              "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full",
+              isDark
+                ? "bg-accent-light/15 text-accent-light"
+                : "bg-accent/12 text-accent-deep",
+            ]}
             aria-hidden="true"
           >
-            <FiCheck className="h-3 w-3" strokeWidth={3} />
+            <Icon name="check" class="h-3 w-3" strokeWidth={2.8} />
           </span>
           {item}
         </li>

@@ -1,4 +1,9 @@
 ---
+/**
+ * Rejilla numerada para argumentos de venta (los cinco compromisos de Zerho).
+ * La numeración no es decorativa: convierte una lista de promesas en un orden
+ * que se puede citar y recordar.
+ */
 interface Pillar {
   title: string;
   body: string;
@@ -6,8 +11,8 @@ interface Pillar {
 
 interface Props {
   items: readonly Pillar[];
-  /** `card` for standalone panels, `bare` for a lighter editorial column. */
   variant?: "card" | "bare";
+  tone?: "light" | "dark";
   columns?: 2 | 3 | 4;
   class?: string;
 }
@@ -15,9 +20,12 @@ interface Props {
 const {
   items,
   variant = "card",
+  tone = "light",
   columns = 3,
   class: className = "",
 } = Astro.props;
+
+const isDark = tone === "dark";
 
 const COLUMN_CLASS = {
   2: "sm:grid-cols-2",
@@ -33,19 +41,38 @@ const COLUMN_CLASS = {
         class:list={[
           "reveal h-full",
           variant === "card"
-            ? "card p-6 shadow-e1 lg:p-7"
-            : "border-t border-line pt-6",
+            ? isDark
+              ? "card-on-primary p-6 lg:p-7"
+              : "card p-6 shadow-e1 lg:p-7"
+            : isDark
+              ? "border-t border-white/15 pt-6"
+              : "border-t border-line pt-6",
         ]}
-        style={`transition-delay:${i * 80}ms`}
+        style={`transition-delay:${Math.min(i * 70, 350)}ms`}
       >
         <span
-          class="type-label text-accent tabular-nums"
+          class:list={[
+            "type-label tabular-nums",
+            isDark ? "text-accent-light" : "text-accent-deep",
+          ]}
           aria-hidden="true"
         >
           {String(i + 1).padStart(2, "0")}
         </span>
-        <h3 class="type-heading mt-3 text-ink">{item.title}</h3>
-        <p class="mt-3 text-[0.95rem] leading-relaxed text-muted">
+        <h3
+          class:list={[
+            "type-heading mt-3.5",
+            isDark ? "text-on-primary" : "text-ink",
+          ]}
+        >
+          {item.title}
+        </h3>
+        <p
+          class:list={[
+            "mt-3 text-[0.95rem] leading-relaxed",
+            isDark ? "text-on-primary/65" : "text-muted",
+          ]}
+        >
           {item.body}
         </p>
       </li>

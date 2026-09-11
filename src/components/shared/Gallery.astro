@@ -1,54 +1,42 @@
 ---
 import { Image } from "astro:assets";
-import { FiMaximize2 } from "react-icons/fi";
+import Icon from "@/components/ui/Icon.astro";
+import { galleryId, getGalleryImages } from "@/lib/gallery";
 
+/**
+ * Galería en mosaico con visor a pantalla completa.
+ *
+ * Las imágenes se descubren en build desde `src/assets/<dir>/`: añadir una foto
+ * a la carpeta la publica, sin tocar el .md ni este componente.
+ */
 interface Props {
-  /** Folder name inside `src/assets/` — e.g. `Kitchens`, `closets`. */
-  name: string;
-  /** Accessible label for the group; also rendered when `showTitle`. */
-  title?: string;
-  eyebrow?: string;
-  /** `mosaic` gives the first image a hero cell; `grid` keeps every cell equal. */
+  /** Ruta bajo `src/assets/`, p. ej. `images/gal/prueba`. */
+  dir: string;
+  /** Nombre legible de la residencia; alimenta los textos alternativos. */
+  subject?: string;
   layout?: "mosaic" | "grid";
+  /** Corta el mosaico en las primeras N imágenes. */
+  limit?: number;
   class?: string;
 }
 
 const {
-  name,
-  title,
-  eyebrow,
+  dir,
+  subject = "",
   layout = "mosaic",
+  limit,
   class: className = "",
 } = Astro.props;
 
-const modules = import.meta.glob<{ default: ImageMetadata }>(
-  "../../assets/**/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG}",
-  { eager: true },
-);
-
-/** Turns `misiones-kitchen-wall.jpg.jpeg` into `Misiones kitchen wall`. */
-const toLabel = (path: string) =>
-  path
-    .split("/")
-    .pop()!
-    .replace(/\.(jpe?g|png|webp|avif)/gi, "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (c) => c.toUpperCase());
-
-const images = Object.entries(modules)
-  .filter(([path]) => path.includes(`/assets/${name}/`))
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([path, mod]) => ({ src: mod.default, label: toLabel(path) }));
-
-const galleryId = `pswp-${name.toLowerCase()}`;
+const all = getGalleryImages(dir);
+const images = typeof limit === "number" ? all.slice(0, limit) : all;
+const id = galleryId(dir);
 
 /**
- * Mosaic rhythm: the opening frame is wide, then the grid alternates so no two
- * adjacent rows share the same shape. Anything past the pattern repeats it.
+ * Ritmo del mosaico: la primera toma manda, y a partir de ahí ninguna fila
+ * repite la forma de la anterior. Cuando se acaba el patrón, se repite.
  */
-const mosaicSpans = [
+const MOSAIC_SPANS = [
   "sm:col-span-4 sm:row-span-2",
   "sm:col-span-2",
   "sm:col-span-2",
@@ -62,64 +50,62 @@ const mosaicSpans = [
 
 {
   images.length > 0 && (
-    <figure class:list={["not-prose", className]}>
-      {(eyebrow || title) && (
-        <figcaption class="mb-7">
-          {eyebrow && <p class="type-eyebrow text-accent">{eyebrow}</p>}
-          {title && <h2 class="type-heading mt-3 text-ink">{title}</h2>}
-        </figcaption>
-      )}
+    <div
+      id={id}
+      data-pswp-gallery
+      class:list={[
+        "not-prose grid auto-rows-[12rem] grid-cols-2 gap-3 sm:auto-rows-[10.5rem] sm:gap-4 lg:auto-rows-[12.5rem]",
+        layout === "mosaic" ? "sm:grid-cols-6" : "sm:grid-cols-3",
+        className,
+      ]}
+    >
+      {images.map((src, i) => {
+        const caption = subject
+          ? `${subject} — imagen ${i + 1} de ${images.length}`
+          : `Imagen ${i + 1} de ${images.length}`;
 
-      <div
-        id={galleryId}
-        data-pswp-gallery
-        class:list={[
-          "grid auto-rows-[13rem] grid-cols-2 gap-3 sm:auto-rows-[11rem] sm:gap-4 lg:auto-rows-[13rem]",
-          layout === "mosaic" ? "sm:grid-cols-6" : "sm:grid-cols-3",
-        ]}
-      >
-        {images.map(({ src, label }, i) => (
+        return (
           <a
             href={src.src}
             data-pswp-width={src.width}
             data-pswp-height={src.height}
-            data-pswp-caption={label}
+            data-pswp-caption={caption}
             target="_blank"
             rel="noreferrer"
-            aria-label={label}
+            aria-label={`Ampliar: ${caption}`}
             class:list={[
-              "press-soft group relative block overflow-hidden rounded-[1.25rem] bg-panelAlt shadow-e1 focus-visible:outline-offset-4",
+              "press-soft group relative block overflow-hidden rounded-panel bg-panel-alt shadow-e1 focus-visible:outline-offset-4",
               layout === "mosaic"
-                ? mosaicSpans[i % mosaicSpans.length]
+                ? MOSAIC_SPANS[i % MOSAIC_SPANS.length]
                 : "sm:col-span-1",
               layout === "mosaic" && i === 0 && "col-span-2 row-span-2",
             ]}
           >
             <Image
               src={src}
-              alt={label}
-              widths={[400, 800, 1200]}
-              sizes="(min-width: 1024px) 40vw, (min-width: 640px) 50vw, 92vw"
+              alt={caption}
+              widths={[400, 800, 1400]}
+              sizes="(min-width: 1024px) 45vw, (min-width: 640px) 50vw, 92vw"
               loading={i < 2 ? "eager" : "lazy"}
-              class="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
+              class="h-full w-full object-cover transition-transform duration-[900ms] ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
             />
 
-            {/* Scrim + affordance only appear on intent, so the photo stays clean */}
+            {/* El velo y el icono sólo aparecen con la intención: en reposo
+                manda la fotografía, no la interfaz. */}
             <span
-              class="pointer-events-none absolute inset-0 bg-linear-to-t from-baseBlack/55 via-baseBlack/0 to-baseBlack/0 opacity-0 transition-opacity duration-400 group-hover:opacity-100 group-focus-visible:opacity-100"
+              class="pointer-events-none absolute inset-0 bg-gradient-to-t from-base-black/55 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100"
               aria-hidden="true"
             />
             <span
-              class="pointer-events-none absolute bottom-3 left-4 right-4 flex items-center justify-between gap-3 translate-y-2 opacity-0 transition-[opacity,transform] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+              class="pointer-events-none absolute bottom-3.5 right-3.5 grid h-9 w-9 translate-y-2 place-items-center rounded-full border border-white/25 bg-white/15 text-white opacity-0 backdrop-blur-md transition-[opacity,transform] duration-500 ease-[var(--ease-out-expo)] group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
               aria-hidden="true"
             >
-              <span class="type-label text-white/90">{label}</span>
-              <FiMaximize2 className="h-4 w-4 shrink-0 text-white/80" />
+              <Icon name="maximize" class="h-4 w-4" strokeWidth={1.9} />
             </span>
           </a>
-        ))}
-      </div>
-    </figure>
+        );
+      })}
+    </div>
   )
 }
 
@@ -128,6 +114,11 @@ const mosaicSpans = [
   import "photoswipe/style.css";
 
   let lightboxes: PhotoSwipeLightbox[] = [];
+
+  function destroyGalleries() {
+    lightboxes.forEach((lb) => lb.destroy());
+    lightboxes = [];
+  }
 
   function initGalleries() {
     destroyGalleries();
@@ -138,7 +129,10 @@ const mosaicSpans = [
         const lb = new PhotoSwipeLightbox({
           gallery: `#${el.id}`,
           children: "a",
-          bgOpacity: 0.92,
+          bgOpacity: 0.94,
+          // Zoom desde la miniatura: la foto crece desde donde estaba, no
+          // aparece de la nada en el centro de la pantalla.
+          showHideAnimationType: "zoom",
           pswpModule: () => import("photoswipe"),
         });
 
@@ -149,10 +143,10 @@ const mosaicSpans = [
             isButton: false,
             appendTo: "root",
             html: "",
-            onInit: (el, pswp) => {
-              el.classList.add("pswp-caption");
+            onInit: (element, pswp) => {
+              element.classList.add("pswp-caption");
               pswp.on("change", () => {
-                el.textContent =
+                element.textContent =
                   pswp.currSlide?.data.element?.dataset.pswpCaption ?? "";
               });
             },
@@ -164,28 +158,6 @@ const mosaicSpans = [
       });
   }
 
-  function destroyGalleries() {
-    lightboxes.forEach((lb) => lb.destroy());
-    lightboxes = [];
-  }
-
   document.addEventListener("astro:page-load", initGalleries);
   document.addEventListener("astro:before-swap", destroyGalleries);
 </script>
-
-<style is:global>
-  .pswp-caption {
-    position: absolute;
-    bottom: 1.25rem;
-    left: 50%;
-    translate: -50% 0;
-    max-width: min(40rem, 90vw);
-    text-align: center;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.82);
-    text-shadow: 0 1px 12px rgb(0 0 0 / 0.6);
-  }
-</style>

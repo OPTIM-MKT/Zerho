@@ -1,0 +1,34 @@
+---
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import PropertyView from "@/components/property/PropertyView.astro";
+import { getSecondaryProperties, type Property } from "@/lib/properties";
+
+export const prerender = true;
+
+/**
+ * Una ruta por residencia no destacada. La destacada queda fuera a propósito:
+ * vive en `/` y no debe existir también aquí.
+ */
+export const getStaticPaths = (async () => {
+  const properties = await getSecondaryProperties();
+
+  return properties.map((property) => ({
+    params: { slug: property.id },
+    props: { property },
+  }));
+}) satisfies GetStaticPaths;
+
+const { property } = Astro.props as { property: Property };
+const { data } = property;
+---
+
+<Layout
+  title={data.seo?.title ?? `${data.title} — ${data.location}`}
+  description={data.seo?.description ?? data.excerpt}
+  image={data.cover}
+  propertyTitle={data.title}
+  currentId={property.id}
+>
+  <PropertyView property={property} />
+</Layout>

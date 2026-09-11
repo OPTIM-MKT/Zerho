@@ -1,0 +1,90 @@
+---
+import Icon, { type IconName } from "./Icon.astro";
+
+/**
+ * Botón único del sitio. Toda la piel vive en `.btn*` de `global.css`, así que
+ * cambiar el sistema de color no obliga a tocar ningún componente.
+ *
+ * Es Astro y no React a propósito: estas páginas no hidratan nada, y un
+ * <a> estático no necesita 40 kB de runtime para verse bien.
+ */
+export type ButtonVariant =
+  | "primary"
+  | "accent"
+  | "outline"
+  | "on-primary"
+  | "glass";
+
+interface Props {
+  variant?: ButtonVariant;
+  size?: "sm" | "md";
+  href?: string;
+  /** Abre en pestaña nueva y añade rel de seguridad. */
+  external?: boolean;
+  icon?: IconName;
+  /** `trailing` (por defecto) acompaña la acción; `leading` la etiqueta. */
+  iconPosition?: "leading" | "trailing";
+  type?: "button" | "submit";
+  class?: string;
+  [key: string]: unknown;
+}
+
+const {
+  variant = "primary",
+  size = "md",
+  href,
+  external = false,
+  icon,
+  iconPosition = "trailing",
+  type = "button",
+  class: className = "",
+  ...rest
+} = Astro.props;
+
+const VARIANT_CLASS = {
+  primary: "btn-primary",
+  accent: "btn-accent",
+  outline: "btn-outline",
+  "on-primary": "btn-on-primary",
+  glass: "btn-glass",
+} as const;
+
+const classes = [
+  "btn",
+  VARIANT_CLASS[variant],
+  size === "sm" && "btn-sm",
+  "group",
+  className,
+]
+  .filter(Boolean)
+  .join(" ");
+
+const externalAttrs = external
+  ? { target: "_blank", rel: "noopener noreferrer" }
+  : {};
+
+const Tag = href ? "a" : "button";
+---
+
+<Tag
+  class={classes}
+  {...href ? { href } : { type }}
+  {...externalAttrs}
+  {...rest}
+>
+  {
+    icon && iconPosition === "leading" && (
+      <Icon name={icon} class="h-4 w-4 shrink-0" strokeWidth={1.9} />
+    )
+  }
+  <slot />
+  {
+    icon && iconPosition === "trailing" && (
+      <Icon
+        name={icon}
+        class="h-4 w-4 shrink-0 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-0.5"
+        strokeWidth={1.9}
+      />
+    )
+  }
+</Tag>

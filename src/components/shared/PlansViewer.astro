@@ -1,0 +1,219 @@
+---
+import { Image } from "astro:assets";
+import Icon from "@/components/ui/Icon.astro";
+
+/**
+ * Visor de plantas arquitectónicas.
+ *
+ * Las láminas no se montan y desmontan al cambiar de pestaña: conviven apiladas
+ * y se funden entre sí. Así el alto del bloque no salta, el visor a pantalla
+ * completa conserva las medidas de todas las láminas para animar el zoom desde
+ * su posición real, y el cambio se siente instantáneo porque no hay carga.
+ */
+interface Plan {
+  label: string;
+  caption?: string;
+  image: ImageMetadata;
+}
+
+interface Props {
+  plans: readonly Plan[];
+  /** Nombre de la residencia; entra en los textos alternativos. */
+  subject: string;
+  class?: string;
+}
+
+const { plans, subject, class: className = "" } = Astro.props;
+
+const viewerId = `plans-${subject.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}`;
+---
+
+{
+  plans.length > 0 && (
+    <div class:list={["reveal", className]}>
+      {/* Control segmentado: una sola línea, el indicador viaja con muelle */}
+      {plans.length > 1 && (
+        <div
+          data-indicator-root
+          role="tablist"
+          aria-label={`Plantas de ${subject}`}
+          class="relative mb-7 inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-line bg-panel p-1 text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <span
+            data-indicator
+            aria-hidden="true"
+            class="pointer-events-none absolute left-0 top-1/2 h-9 -translate-y-1/2 rounded-full bg-ink opacity-0"
+            style="transition: opacity 300ms var(--ease-out-expo);"
+          />
+          {plans.map((plan, i) => (
+            <button
+              type="button"
+              role="tab"
+              data-indicator-item
+              data-plan-tab={i}
+              data-active={i === 0 ? "" : undefined}
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls={`${viewerId}-panel-${i}`}
+              class="relative z-10 shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-ink opacity-55 transition-[opacity,color] duration-300 ease-[var(--ease-out-expo)] hover:opacity-90 data-[active]:text-canvas data-[active]:opacity-100"
+            >
+              {plan.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Las láminas comparten una sola caja: el bloque no cambia de alto */}
+      <div
+        id={`${viewerId}-stack`}
+        data-pswp-gallery
+        data-plans-stack
+        class="relative aspect-[4/3] w-full overflow-hidden rounded-frame border border-line bg-panel sm:aspect-[16/10]"
+      >
+        {plans.map((plan, i) => {
+          const caption = `${subject} — ${plan.label}`;
+          return (
+            <a
+              href={plan.image.src}
+              data-pswp-width={plan.image.width}
+              data-pswp-height={plan.image.height}
+              data-pswp-caption={caption}
+              data-plan-panel={i}
+              data-active={i === 0 ? "" : undefined}
+              id={`${viewerId}-panel-${i}`}
+              role="tabpanel"
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Ampliar ${caption}`}
+              class="plan-panel press-soft group absolute inset-0 block focus-visible:outline-offset-4"
+            >
+              <Image
+                src={plan.image}
+                alt={caption}
+                widths={[640, 1200, 1800]}
+                sizes="(min-width: 1024px) 70vw, 92vw"
+                loading={i === 0 ? "eager" : "lazy"}
+                class="h-full w-full object-cover"
+              />
+
+              <span
+                class="pointer-events-none absolute inset-0 bg-gradient-to-t from-base-black/70 via-transparent to-transparent"
+                aria-hidden="true"
+              />
+
+              <span class="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-5 p-5 sm:p-7">
+                <span class="max-w-lg">
+                  <span class="type-label block text-accent-light">
+                    {plan.label}
+                  </span>
+                  {plan.caption && (
+                    <span class="mt-2.5 block text-[0.9rem] leading-relaxed text-white/80">
+                      {plan.caption}
+                    </span>
+                  )}
+                </span>
+
+                <span
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-md transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover:scale-105"
+                  aria-hidden="true"
+                >
+                  <Icon name="maximize" class="h-4 w-4" strokeWidth={1.9} />
+                </span>
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  )
+}
+
+<style>
+  /* Fundido cruzado entre láminas. `visibility` en lugar de `display` para que
+     las inactivas conserven medidas: el visor las necesita para el zoom. */
+  .plan-panel {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 420ms var(--ease-out-expo),
+      visibility 0s linear 420ms;
+  }
+
+  .plan-panel[data-active] {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 420ms var(--ease-out-expo),
+      visibility 0s;
+  }
+</style>
+
+<script>
+  import { mountAllIndicators } from "@/scripts/indicator";
+
+  let cleanup: (() => void) | null = null;
+
+  function initPlans() {
+    cleanup?.();
+
+    const roots = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-plans-stack]"),
+    );
+    if (!roots.length) return;
+
+    const listeners: Array<() => void> = [];
+
+    for (const stack of roots) {
+      const section = stack.closest("section") ?? document;
+      const tabs = Array.from(
+        section.querySelectorAll<HTMLButtonElement>("[data-plan-tab]"),
+      );
+      const panels = Array.from(
+        stack.querySelectorAll<HTMLElement>("[data-plan-panel]"),
+      );
+
+      const select = (index: number) => {
+        tabs.forEach((tab, i) => {
+          tab.toggleAttribute("data-active", i === index);
+          tab.setAttribute("aria-selected", String(i === index));
+        });
+        panels.forEach((panel, i) =>
+          panel.toggleAttribute("data-active", i === index),
+        );
+      };
+
+      tabs.forEach((tab, i) => {
+        // En pointerdown, no en click: el indicador sale en cuanto se toca.
+        const onPointerDown = () => select(i);
+        const onKeyDown = (event: KeyboardEvent) => {
+          const delta =
+            event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+          if (!delta) return;
+          event.preventDefault();
+          const next = (i + delta + tabs.length) % tabs.length;
+          select(next);
+          tabs[next]!.focus();
+        };
+
+        tab.addEventListener("pointerdown", onPointerDown);
+        tab.addEventListener("keydown", onKeyDown);
+        listeners.push(() => {
+          tab.removeEventListener("pointerdown", onPointerDown);
+          tab.removeEventListener("keydown", onKeyDown);
+        });
+      });
+    }
+
+    const unmountIndicators = mountAllIndicators(
+      "[role='tablist'][data-indicator-root]",
+    );
+
+    cleanup = () => {
+      listeners.forEach((fn) => fn());
+      unmountIndicators();
+      cleanup = null;
+    };
+  }
+
+  document.addEventListener("astro:page-load", initPlans);
+  document.addEventListener("astro:before-swap", () => cleanup?.());
+</script>

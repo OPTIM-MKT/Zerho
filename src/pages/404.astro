@@ -1,0 +1,37 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PropertyCard from "@/components/shared/PropertyCard.astro";
+import SectionHeader from "@/components/shared/SectionHeader.astro";
+import { getProperties } from "@/lib/properties";
+
+export const prerender = true;
+
+/** Nunca se deja al visitante en un callejón: se le ofrecen las tres fichas. */
+const properties = await getProperties();
+---
+
+<Layout
+  title="Página no encontrada"
+  description="La dirección solicitada no existe. Conoce las residencias disponibles de Zerho."
+  showSections={false}
+>
+  <section class="section-y pt-[calc(var(--chrome-h)+4rem)]">
+    <div class="container-x">
+      <SectionHeader
+        eyebrow="Error 404"
+        title="Esta dirección no existe"
+        description="Puede que el enlace haya cambiado. Estas son las residencias publicadas."
+      />
+
+      <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+        {
+          properties.map((property, i) => (
+            <div class="reveal" style={`transition-delay:${i * 90}ms`}>
+              <PropertyCard property={property} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Layout>

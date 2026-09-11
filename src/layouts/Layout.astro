@@ -1,30 +1,105 @@
 ---
-import "../styles/global.css";
+import "@/styles/global.css";
 import { ClientRouter } from "astro:transitions";
 import { SEO } from "astro-seo";
+import { SITE } from "@/data/site";
+import SiteHeader from "@/components/shared/SiteHeader.astro";
+import SiteFooter from "@/components/shared/SiteFooter.astro";
+import ScrollReveal from "@/components/shared/ScrollReveal.astro";
+import ScrollTop from "@/components/shared/ScrollTop.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Imagen social. Se resuelve a URL absoluta para Open Graph. */
+  image?: ImageMetadata;
+  /** Residencia en pantalla: personaliza contacto y marca el menú. */
+  propertyTitle?: string;
+  currentId?: string;
+  showSections?: boolean;
+}
+
+const {
+  title,
+  description,
+  image,
+  propertyTitle,
+  currentId,
+  showSections = true,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const socialImage = image
+  ? new URL(image.src, Astro.site).toString()
+  : undefined;
+
+const fullTitle = title.includes(SITE.name) ? title : `${title} · ${SITE.name}`;
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es-MX">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#333a30" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
+
+    <SEO
+      title={fullTitle}
+      description={description}
+      canonical={canonical}
+      openGraph={{
+        basic: {
+          title: fullTitle,
+          type: "website",
+          image: socialImage ?? new URL("/favicon.svg", Astro.site).toString(),
+          url: canonical,
+        },
+        optional: {
+          description,
+          siteName: SITE.name,
+          locale: "es_MX",
+        },
+      }}
+      twitter={{
+        card: "summary_large_image",
+        title: fullTitle,
+        description,
+      }}
+    />
+
+    <!--
+      Marca el documento como "con JavaScript" antes del primer pintado. Sin
+      esto, los elementos con `.reveal` se verían un instante y desaparecerían
+      al arrancar el observador; y sin JS se quedan visibles, que es lo
+      correcto: la animación decora, no condiciona la lectura.
+    -->
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+
     <ClientRouter />
-    <meta name="generator" content={Astro.generator} />
-    <title>Zerho</title>
   </head>
-  <body>
-    <slot />
+
+  <body class="bg-canvas text-ink antialiased">
+    <a
+      href="#residencia"
+      class="btn btn-primary sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60]"
+    >
+      Saltar al contenido
+    </a>
+
+    <SiteHeader currentId={currentId} showSections={showSections} />
+
+    <main>
+      <slot />
+    </main>
+
+    <SiteFooter propertyTitle={propertyTitle} currentId={currentId} />
+
+    <ScrollTop />
+    <ScrollReveal />
   </body>
 </html>
-
-<style>
-  html,
-  body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-  }
-</style>

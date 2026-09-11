@@ -1,0 +1,53 @@
+---
+import { SECTIONS } from "@/data/site";
+
+/**
+ * Navegación por secciones. El sitio es una sola página larga por residencia,
+ * así que esto no lleva a ningún sitio nuevo: dice dónde estás.
+ *
+ * Se monta dos veces —en línea dentro de la cabecera en escritorio, flotando
+ * al pie en móvil— y un único script gobierna ambas instancias.
+ */
+interface Props {
+  variant?: "inline" | "floating";
+  class?: string;
+}
+
+const { variant = "inline", class: className = "" } = Astro.props;
+const isFloating = variant === "floating";
+---
+
+<nav
+  data-section-nav
+  data-indicator-root
+  aria-label="Secciones de la residencia"
+  class:list={[
+    "relative flex items-center",
+    isFloating
+      ? "gap-0.5 overflow-x-auto rounded-full p-1 text-ink [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      : "gap-0.5",
+    className,
+  ]}
+>
+  {/* La pastilla vive detrás de las etiquetas y toma su color del contexto,
+      así la misma navegación funciona sobre foto oscura y sobre lienzo. */}
+  <span
+    data-indicator
+    aria-hidden="true"
+    class="pointer-events-none absolute left-0 top-1/2 -z-0 h-8 -translate-y-1/2 rounded-full opacity-0"
+    style="background: color-mix(in srgb, currentColor 11%, transparent); transition: opacity 300ms var(--ease-out-expo);"
+  ></span>
+
+  {
+    SECTIONS.map((section) => (
+      <a
+        href={`#${section.id}`}
+        data-indicator-item
+        data-section-link={section.id}
+        class="relative z-10 shrink-0 rounded-full px-3.5 py-2 text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-current opacity-60 transition-opacity duration-300 ease-[var(--ease-out-expo)] hover:opacity-100 data-[active]:opacity-100"
+      >
+        {section.label}
+      </a>
+    ))
+  }
+</nav>

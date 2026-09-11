@@ -1,0 +1,67 @@
+---
+import Icon, { type IconName } from "@/components/ui/Icon.astro";
+
+/**
+ * Ficha técnica. Es la tabla que el comprador compara entre residencias, así
+ * que prima la lectura en columna: etiqueta pequeña arriba, cifra grande
+ * debajo, matiz opcional al pie. Nada de iconos decorativos compitiendo con
+ * los números — el icono es un ancla de reconocimiento, va en gris y pequeño.
+ */
+interface Spec {
+  label: string;
+  value: string;
+  note?: string;
+  icon?: string;
+}
+
+interface Props {
+  items: readonly Spec[];
+  columns?: 2 | 3;
+  class?: string;
+}
+
+const { items, columns = 3, class: className = "" } = Astro.props;
+
+const COLUMN_CLASS = {
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-2 lg:grid-cols-3",
+} as const;
+
+const KNOWN_ICONS = new Set<IconName>([
+  "map-pin",
+  "ruler",
+  "layers",
+  "bed",
+  "bath",
+  "pool",
+  "tree",
+  "car",
+]);
+
+const isIconName = (value?: string): value is IconName =>
+  Boolean(value) && KNOWN_ICONS.has(value as IconName);
+---
+
+<dl class:list={["grid gap-px overflow-hidden rounded-panel border border-line bg-line", COLUMN_CLASS[columns], className]}>
+  {
+    items.map((item, i) => (
+      <div
+        class="reveal flex flex-col bg-panel px-6 py-6"
+        style={`transition-delay:${Math.min(i * 45, 320)}ms`}
+      >
+        <dt class="flex items-center gap-2.5">
+          {isIconName(item.icon) && (
+            <Icon name={item.icon} class="h-4 w-4 shrink-0 text-accent" />
+          )}
+          <span class="type-eyebrow text-muted">{item.label}</span>
+        </dt>
+        <dd class="type-stat mt-3 text-ink">{item.value}</dd>
+        {item.note && (
+          <p class="mt-2.5 text-[0.85rem] leading-snug text-muted">
+            {item.note}
+          </p>
+        )}
+      </div>
+    ))
+  }
+</dl>

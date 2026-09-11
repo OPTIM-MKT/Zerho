@@ -1,11 +1,25 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import Layout from "@/layouts/Layout.astro";
+import PropertyView from "@/components/property/PropertyView.astro";
+import { getFeaturedProperty } from "@/lib/properties";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+export const prerender = true;
+
+/**
+ * La portada no es un escaparate: es la residencia destacada.
+ * Quien llega a zerho.mx entra directamente en Encinos 8, y las otras dos
+ * quedan a un clic desde la cabecera, el bloque previo al pie y el pie.
+ */
+const property = await getFeaturedProperty();
+const { data } = property;
 ---
 
-<Layout>
-	<Welcome />
+<Layout
+  title={data.seo?.title ?? `${data.title} — ${data.location}`}
+  description={data.seo?.description ?? data.excerpt}
+  image={data.cover}
+  propertyTitle={data.title}
+  currentId={property.id}
+>
+  <PropertyView property={property} />
 </Layout>
